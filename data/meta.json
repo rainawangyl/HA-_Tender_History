@@ -1,11 +1,13 @@
 {
-  "last_checked": "",
-  "last_successful_update": "",
-  "award_count": 3160,
+  "last_checked": "2026-09-01T04:51:13+00:00",
+  "last_successful_update": "2026-09-01T04:51:23+00:00",
+  "award_count": 953,
   "notice_count": 0,
-  "new_awards_last_run": 0,
+  "new_awards_last_run": 953,
   "updated_awards_last_run": 0,
   "new_notices_last_run": 0,
   "updated_notices_last_run": 0,
-  "seed": "Imported from uploaded index.html"
+  "seed": "Imported from uploaded index.html",
+  "award_source_url": "https://www.ha.org.hk/haho/ho/bssd/TA_236491_210026512a.htm",
+  "error": ""
 }
