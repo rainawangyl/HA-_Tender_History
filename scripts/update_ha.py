@@ -76,30 +76,86 @@ def discover_article(session,label):
     raise RuntimeError(f"Could not find {label} on HA Tender Notices entry page")
 
 def candidate_links(base,html):
+    """Extract HA candidate URLs from normal tags and embedded JavaScript/raw HTML."""
     soup=BeautifulSoup(html,"lxml")
     out=set()
-    for tag in soup.find_all(["a","iframe","frame"]):
-        v=tag.get("href") or tag.get("src")
-        if v:out.add(urljoin(base,v))
-    for v in re.findall(r"(?:href|src)\s*=\s*[\"']([^\"']+)[\"']",html,re.I):
-        out.add(urljoin(base,v))
-    return [u for u in out if urlparse(u).netloc.lower().endswith("ha.org.hk")]
+
+    for tag in soup.find_all(["a","iframe","frame","embed","object","form"]):
+        for attr in ("href","src","data","action"):
+            v=tag.get(attr)
+            if v:
+                out.add(urljoin(base,v.strip()))
+
+    for v in re.findall(r"(?:href|src|data|action)\s*=\s*[\"']([^\"']+)[\"']",html,re.I):
+        out.add(urljoin(base,v.strip()))
+
+    for v in re.findall(r"[\"']([^\"'<>\s]+\.html?(?:\?[^\"']*)?)[\"']",html,re.I):
+        out.add(urljoin(base,v.strip()))
+
+    for v in re.findall(r"(?i)(?:https?://[^\s\"'<>]+)?/?(?:haho/ho/bssd/)?TA_[A-Za-z0-9_-]+\.html?",html):
+        out.add(urljoin(base,v.strip()))
+
+    for v in re.findall(r"(?i)(/?haho/ho/bssd/[^\s\"'<>]+\.html?)",html):
+        out.add(urljoin(base,v.strip()))
+
+    return sorted(u for u in out if urlparse(u).netloc.lower().endswith("ha.org.hk"))
+
 
 def resolve_contract_page(session,wrapper):
     wr=get(wrapper,session)
     text=clean(BeautifulSoup(wr.text,"lxml").get_text(" ",strip=True)).lower()
-    if "contract award notice" in text and "date of award" in text:return wrapper,wr.text
-    links=sorted(candidate_links(wrapper,wr.text),key=lambda u:("/haho/ho/bssd/" not in u.lower(),u))
+    if "contract award notice" in text and "date of award" in text:
+        return wrapper,wr.text
+
+    links=candidate_links(wrapper,wr.text)
+    links=sorted(links,key=lambda u:("TA_" not in u.upper(),"/haho/ho/bssd/" not in u.lower(),u))
+
+    attempted=[]
     for u in links:
-        if not re.search(r"\.html?(?:$|\?)",u,re.I):continue
+        if not re.search(r"\.html?(?:$|\?)",u,re.I):
+            continue
         try:
+            attempted.append(u)
             rr=get(u,session)
             t=clean(BeautifulSoup(rr.text,"lxml").get_text(" ",strip=True)).lower()
             if "contract award notice" in t and "tender reference" in t and "date of award" in t:
                 return u,rr.text
         except Exception:
             pass
-    raise RuntimeError("Could not resolve current HA Contract Award detail page")
+
+    # Emergency fallback for the currently published HA Contract Award page.
+    # Automatic discovery above is still the primary path; this only prevents a
+    # wrapper-markup change from breaking the daily database immediately.
+    fallback_urls=[
+        "https://www.ha.org.hk/haho/ho/bssd/TA_236491_210026500a.htm"
+    ]
+    for u in fallback_urls:
+        if u in attempted:
+            continue
+        try:
+            attempted.append(u)
+            rr=get(u,session)
+            t=clean(BeautifulSoup(rr.text,"lxml").get_text(" ",strip=True)).lower()
+            if "contract award notice" in t and "tender reference" in t and "date of award" in t:
+                print("Using emergency Contract Award fallback:",u)
+                return u,rr.text
+        except Exception:
+            pass
+
+    print("Contract Award wrapper URL:",wrapper)
+    print("Candidate HTML links discovered:",len(links))
+    for u in links[:30]:
+        print("  candidate:",u)
+    if attempted:
+        print("Attempted contract page URLs:")
+        for u in attempted[:30]:
+            print("  attempted:",u)
+
+    raise RuntimeError(
+        "Could not resolve current HA Contract Award detail page. "
+        "See candidate URLs printed above in the GitHub Actions log."
+    )
+
 
 def parse_awards(html,source_url):
     soup=BeautifulSoup(html,"lxml")
