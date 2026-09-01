@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HA Tender Search</title>
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#17212b;--muted:#6b7785;--line:#dfe5eb;--accent:#4b3f72;--accent2:#6c5b9d;--soft:#f1eef8;--green:#13795b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.topbar{background:linear-gradient(120deg,var(--accent),#2f365f);color:#fff;padding:28px 32px 24px}.topbar h1{margin:0;font-size:28px}.topbar p{margin:7px 0 0;opacity:.84;font-size:14px}
+.wrap{max-width:1500px;margin:0 auto;padding:22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 12px rgba(28,39,49,.05)}
+.tabs{display:flex;gap:7px;padding:12px 18px 0}.tab{width:auto;height:38px;padding:0 14px;background:#fff;color:var(--muted);border:1px solid var(--line);cursor:pointer;font-weight:700}.tab.active{background:var(--soft);color:var(--accent);border-color:#cfc7df}
+.searchbox{padding:14px 18px 18px;display:grid;grid-template-columns:minmax(320px,2fr) repeat(3,minmax(150px,1fr)) auto;gap:10px;align-items:end}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}input,select,button{width:100%;height:42px;border-radius:9px;border:1px solid #cfd7df;background:#fff;padding:0 12px;font:inherit;color:var(--ink)}
+input:focus,select:focus{outline:2px solid #cbc3e4;border-color:var(--accent2)}#q{font-size:16px}button{cursor:pointer;font-weight:700;background:var(--accent);color:#fff;border-color:var(--accent)}button.secondary{background:#fff;color:var(--accent);border-color:#b9b1ce}
+.help{padding:0 18px 17px;color:var(--muted);font-size:12px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.stat b{display:block;font-size:21px;margin-top:4px}.stat span{font-size:12px;color:var(--muted);font-weight:700}
+.results{overflow:hidden}.results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}.results-head strong{font-size:15px}.small{font-size:12px;color:var(--muted)}
+.table-wrap{overflow:auto;max-height:66vh}table{border-collapse:separate;border-spacing:0;width:100%;min-width:1250px}thead th{position:sticky;top:0;z-index:3;background:#f8fafb;color:#52606d;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.35px;padding:10px;border-bottom:1px solid var(--line)}
+tbody td{font-size:12px;padding:10px;border-bottom:1px solid #edf0f3;vertical-align:top;line-height:1.35}tbody tr:hover{background:#fbfaff}.subject{min-width:310px;font-weight:650}.product{min-width:220px}.contractor{min-width:230px}.amount{white-space:nowrap;font-weight:700}.ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+mark{background:#fff0a8;padding:0 1px;border-radius:2px}.empty{padding:46px;text-align:center;color:var(--muted)}.load{padding:14px;text-align:center;border-top:1px solid var(--line)}.load button{width:auto;padding:0 18px}.hidden{display:none!important}
+.pill{display:inline-block;border-radius:999px;padding:3px 7px;background:var(--soft);color:var(--accent);font-size:10px;font-weight:700}.pill.open{background:#e6f5ee;color:var(--green)}.pill.closed{background:#eef0f2;color:#687480}
+@media(max-width:950px){.searchbox{grid-template-columns:1fr 1fr}.searchbox .wide{grid-column:1/-1}.stats{grid-template-columns:1fr 1fr}}
+</style></head>
+<body>
+<header class="topbar"><h1>HA Tender Search</h1><p id="subtitle">Daily-updated HA tender database</p></header>
+<main class="wrap">
+<section class="panel">
+<div class="tabs"><button class="tab active" data-tab="awards">Historical Awards</button><button class="tab" data-tab="notices">Tender Notices</button></div>
+<div class="searchbox">
+<div class="wide"><label>Keyword / ingredient / product / brand / tender reference / contractor</label><input id="q" placeholder="e.g. abemaciclib, nintedanib, injection, DCH Auriga" autofocus></div>
+<div id="clusterWrap"><label>Hospital / Cluster</label><select id="cluster"><option value="">All</option></select></div>
+<div id="contractorWrap"><label>Contractor</label><select id="contractor"><option value="">All</option></select></div>
+<div><label>Year</label><select id="year"><option value="">All</option></select></div>
+<div><button id="reset" class="secondary">Reset</button></div>
+</div>
+<div class="help">Multiple words use AND logic. Data is refreshed by GitHub Actions; this page only searches the generated JSON database.</div>
+</section>
+<section class="stats">
+<div class="stat"><span id="l1">Matched award lines</span><b id="s1">0</b></div>
+<div class="stat"><span id="l2">Unique tender references</span><b id="s2">0</b></div>
+<div class="stat"><span id="l3">Unique contractors</span><b id="s3">0</b></div>
+<div class="stat"><span id="l4">Latest award</span><b id="s4">—</b></div>
+<div class="stat"><span>Last checked</span><b id="s5" style="font-size:14px">—</b></div>
+</section>
+<section class="panel results">
+<div class="results-head"><strong id="resultTitle">Tender history</strong><div class="small">Newest first · 100 rows at a time</div></div>
+<div class="table-wrap">
+<table id="awardTable"><thead><tr><th>Award date</th><th>Tender ref.</th><th>Product / tender object</th><th>Subject</th><th>Contractor</th><th>Item</th><th>Contract period</th><th>Amount</th><th>Hospital / Cluster</th></tr></thead><tbody></tbody></table>
+<table id="noticeTable" class="hidden"><thead><tr><th>Status</th><th>Closing date</th><th>Issue date</th><th>Tender ref.</th><th>Subject</th><th>Submission requirement</th><th>Tender enquiry</th></tr></thead><tbody></tbody></table>
+<div id="empty" class="empty hidden">No matching records.</div>
+</div>
+<div class="load hidden" id="loadArea"><button id="loadMore">Show more</button></div>
+</section></main>
+<script>
+let AWARDS=[],NOTICES=[],META={},active="awards",filtered=[],shown=0;
+const PAGE=100,el=id=>document.getElementById(id),q=el("q"),cluster=el("cluster"),contractor=el("contractor"),year=el("year");
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+function short(s,n=160){s=String(s||"").replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n-1)+"…":s}
+function hi(s,terms){let out=esc(s);for(const t of terms){if(!t)continue;const safe=t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");out=out.replace(new RegExp("("+safe+")","ig"),"<mark>$1</mark>")}return out}
+function uniq(a){return [...new Set(a.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
+function contractorShort(s){s=short(s,120);const m=s.match(/^(.{1,105}?(?:Limited|Ltd\.?|Co\.,?\s*Ltd\.?|Inc\.?|Corporation))/i);return m?m[1]:s}
+function setOptions(sel,vals){sel.innerHTML='<option value="">All</option>';for(const v of vals){const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)}}
+function setupFilters(){
+ if(active==="awards"){setOptions(cluster,uniq(AWARDS.map(d=>d["Hospital / Cluster"])));setOptions(contractor,uniq(AWARDS.map(d=>contractorShort(d["Contractor"]))));setOptions(year,uniq(AWARDS.map(d=>(d["Award Date"]||"").slice(0,4))).reverse());el("clusterWrap").classList.remove("hidden");el("contractorWrap").classList.remove("hidden")}
+ else{setOptions(year,uniq(NOTICES.map(d=>(d["Issue Date"]||d["Closing Date"]||"").slice(0,4))).reverse());el("clusterWrap").classList.add("hidden");el("contractorWrap").classList.add("hidden")}
+}
+function render(){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),y=year.value,c=cluster.value,ctr=contractor.value,src=active==="awards"?AWARDS:NOTICES;
+ filtered=src.filter(d=>{const blob=Object.values(d).join(" ").toLowerCase();if(!terms.every(t=>blob.includes(t)))return false;if(active==="awards"&&c&&d["Hospital / Cluster"]!==c)return false;if(active==="awards"&&ctr&&contractorShort(d["Contractor"])!==ctr)return false;const dy=(active==="awards"?(d["Award Date"]||""):(d["Issue Date"]||d["Closing Date"]||"")).slice(0,4);return !y||dy===y}).sort((a,b)=>active==="awards"?(b["Award Date"]||"").localeCompare(a["Award Date"]||""):(b["Closing Date"]||"").localeCompare(a["Closing Date"]||""));
+ shown=Math.min(PAGE,filtered.length);stats();draw();
+}
+function stats(){
+ el("s1").textContent=filtered.length.toLocaleString();el("s2").textContent=new Set(filtered.map(d=>d["Tender Reference"]).filter(Boolean)).size.toLocaleString();el("s5").textContent=META.last_checked?META.last_checked.replace("T"," ").slice(0,16):"Not run yet";
+ if(active==="awards"){el("l1").textContent="Matched award lines";el("l2").textContent="Unique tender references";el("l3").textContent="Unique contractors";el("l4").textContent="Latest award";el("s3").textContent=new Set(filtered.map(d=>contractorShort(d["Contractor"])).filter(Boolean)).size.toLocaleString();el("s4").textContent=filtered[0]?.["Award Date"]||"—"}
+ else{el("l1").textContent="Matched notices";el("l2").textContent="Unique tender references";el("l3").textContent="Open notices";el("l4").textContent="Nearest closing";const open=filtered.filter(d=>d.Status==="OPEN");el("s3").textContent=open.length.toLocaleString();el("s4").textContent=open.slice().sort((a,b)=>(a["Closing Date"]||"").localeCompare(b["Closing Date"]||""))[0]?.["Closing Date"]||"—"}
+}
+function draw(){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),ab=document.querySelector("#awardTable tbody"),nb=document.querySelector("#noticeTable tbody");ab.innerHTML="";nb.innerHTML="";
+ if(active==="awards"){for(const d of filtered.slice(0,shown)){const tr=document.createElement("tr");tr.innerHTML='<td>'+esc(d["Award Date"]||"—")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="product">'+hi(short(d["Product / Tender Object"],190),terms)+'</td><td class="subject">'+hi(short(d["Subject"],230),terms)+'</td><td class="contractor">'+hi(contractorShort(d["Contractor"]),terms)+'</td><td>'+hi(short(d["Item"],90),terms)+'</td><td>'+hi(short(d["Contract Period"],135),terms)+'</td><td class="amount">'+hi(d["Estimated Contract Amount Raw"]||"—",terms)+'</td><td>'+hi(d["Hospital / Cluster"],terms)+'</td>';ab.appendChild(tr)}}
+ else{for(const d of filtered.slice(0,shown)){const tr=document.createElement("tr"),st=(d.Status||"UNKNOWN").toLowerCase();tr.innerHTML='<td><span class="pill '+st+'">'+esc(d.Status||"UNKNOWN")+'</span></td><td>'+esc(d["Closing Date"]||"")+'</td><td>'+esc(d["Issue Date"]||"")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="subject">'+hi(short(d["Subject"],330),terms)+'</td><td>'+hi(short(d["Submission Requirement"],210),terms)+'</td><td>'+hi(short(d["Tender Enquiry"],180),terms)+'</td>';nb.appendChild(tr)}}
+ el("empty").classList.toggle("hidden",filtered.length>0);el("loadArea").classList.toggle("hidden",shown>=filtered.length);if(shown<filtered.length)el("loadMore").textContent="Show more ("+shown.toLocaleString()+" / "+filtered.length.toLocaleString()+")";
+}
+async function init(){try{const [a,n,m]=await Promise.all([fetch("data/awards.json",{cache:"no-store"}),fetch("data/notices.json",{cache:"no-store"}),fetch("data/meta.json",{cache:"no-store"})]);AWARDS=await a.json();NOTICES=await n.json();META=await m.json();el("subtitle").textContent="Daily-updated HA tender database · "+AWARDS.length.toLocaleString()+" unique award lines";setupFilters();render()}catch(e){el("subtitle").textContent="Could not load data files: "+e.message}}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");active=b.dataset.tab;q.value="";cluster.value="";contractor.value="";year.value="";el("awardTable").classList.toggle("hidden",active!=="awards");el("noticeTable").classList.toggle("hidden",active!=="notices");el("resultTitle").textContent=active==="awards"?"Tender history":"Tender notices / opportunities";setupFilters();render()}));
+let timer;q.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(render,70)});[cluster,contractor,year].forEach(x=>x.addEventListener("change",render));el("reset").addEventListener("click",()=>{q.value="";cluster.value="";contractor.value="";year.value="";render();q.focus()});el("loadMore").addEventListener("click",()=>{shown=Math.min(shown+PAGE,filtered.length);draw()});init();
+</script></body></html>
