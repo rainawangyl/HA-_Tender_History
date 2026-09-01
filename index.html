@@ -4,82 +4,422 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HA Tender Search</title>
 <style>
-:root{--bg:#f4f6f8;--panel:#fff;--ink:#17212b;--muted:#6b7785;--line:#dfe5eb;--accent:#4b3f72;--accent2:#6c5b9d;--soft:#f1eef8;--green:#13795b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
-.topbar{background:linear-gradient(120deg,var(--accent),#2f365f);color:#fff;padding:28px 32px 24px}.topbar h1{margin:0;font-size:28px}.topbar p{margin:7px 0 0;opacity:.84;font-size:14px}
-.wrap{max-width:1500px;margin:0 auto;padding:22px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 12px rgba(28,39,49,.05)}
-.tabs{display:flex;gap:7px;padding:12px 18px 0}.tab{width:auto;height:38px;padding:0 14px;background:#fff;color:var(--muted);border:1px solid var(--line);cursor:pointer;font-weight:700}.tab.active{background:var(--soft);color:var(--accent);border-color:#cfc7df}
-.searchbox{padding:14px 18px 18px;display:grid;grid-template-columns:minmax(320px,2fr) repeat(3,minmax(150px,1fr)) auto;gap:10px;align-items:end}
-label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}input,select,button{width:100%;height:42px;border-radius:9px;border:1px solid #cfd7df;background:#fff;padding:0 12px;font:inherit;color:var(--ink)}
-input:focus,select:focus{outline:2px solid #cbc3e4;border-color:var(--accent2)}#q{font-size:16px}button{cursor:pointer;font-weight:700;background:var(--accent);color:#fff;border-color:var(--accent)}button.secondary{background:#fff;color:var(--accent);border-color:#b9b1ce}
-.help{padding:0 18px 17px;color:var(--muted);font-size:12px}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.stat b{display:block;font-size:21px;margin-top:4px}.stat span{font-size:12px;color:var(--muted);font-weight:700}
-.results{overflow:hidden}.results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}.results-head strong{font-size:15px}.small{font-size:12px;color:var(--muted)}
-.table-wrap{overflow:auto;max-height:66vh}table{border-collapse:separate;border-spacing:0;width:100%;min-width:1250px}thead th{position:sticky;top:0;z-index:3;background:#f8fafb;color:#52606d;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.35px;padding:10px;border-bottom:1px solid var(--line)}
-tbody td{font-size:12px;padding:10px;border-bottom:1px solid #edf0f3;vertical-align:top;line-height:1.35}tbody tr:hover{background:#fbfaff}.subject{min-width:310px;font-weight:650}.product{min-width:220px}.contractor{min-width:230px}.amount{white-space:nowrap;font-weight:700}.ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
-mark{background:#fff0a8;padding:0 1px;border-radius:2px}.empty{padding:46px;text-align:center;color:var(--muted)}.load{padding:14px;text-align:center;border-top:1px solid var(--line)}.load button{width:auto;padding:0 18px}.hidden{display:none!important}
-.pill{display:inline-block;border-radius:999px;padding:3px 7px;background:var(--soft);color:var(--accent);font-size:10px;font-weight:700}.pill.open{background:#e6f5ee;color:var(--green)}.pill.closed{background:#eef0f2;color:#687480}
-@media(max-width:950px){.searchbox{grid-template-columns:1fr 1fr}.searchbox .wide{grid-column:1/-1}.stats{grid-template-columns:1fr 1fr}}
-</style></head>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#17212b;--muted:#6b7785;--line:#dfe5eb;--accent:#4b3f72;--accent2:#6c5b9d;--soft:#f1eef8;--green:#13795b;--amber:#9a6100;--red:#a33434}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.topbar{background:linear-gradient(120deg,var(--accent),#2f365f);color:#fff;padding:28px 32px 24px}
+.topbar h1{margin:0;font-size:28px}.topbar p{margin:7px 0 0;opacity:.84;font-size:14px}
+.wrap{max-width:1550px;margin:0 auto;padding:22px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 12px rgba(28,39,49,.05)}
+.tabs{display:flex;gap:7px;padding:12px 18px 0;flex-wrap:wrap}
+.tab{width:auto;height:38px;padding:0 14px;background:#fff;color:var(--muted);border:1px solid var(--line);cursor:pointer;font-weight:700}
+.tab.active{background:var(--soft);color:var(--accent);border-color:#cfc7df}
+.searchbox{padding:14px 18px 18px;display:grid;grid-template-columns:minmax(300px,2fr) repeat(4,minmax(135px,1fr)) auto;gap:10px;align-items:end}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}
+input,select,button{width:100%;height:42px;border-radius:9px;border:1px solid #cfd7df;background:#fff;padding:0 12px;font:inherit;color:var(--ink)}
+input:focus,select:focus{outline:2px solid #cbc3e4;border-color:var(--accent2)}
+#q{font-size:16px}
+button{cursor:pointer;font-weight:700;background:var(--accent);color:#fff;border-color:var(--accent)}
+button.secondary{background:#fff;color:var(--accent);border-color:#b9b1ce}
+.help{padding:0 18px 17px;color:var(--muted);font-size:12px;line-height:1.5}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:14px 0}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.stat b{display:block;font-size:21px;margin-top:4px}.stat span{font-size:12px;color:var(--muted);font-weight:700}
+.results{overflow:hidden}.results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.results-head strong{font-size:15px}.small{font-size:12px;color:var(--muted)}
+.table-wrap{overflow:auto;max-height:66vh}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1320px}
+thead th{position:sticky;top:0;z-index:3;background:#f8fafb;color:#52606d;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.35px;padding:10px;border-bottom:1px solid var(--line)}
+tbody td{font-size:12px;padding:10px;border-bottom:1px solid #edf0f3;vertical-align:top;line-height:1.35}
+tbody tr:hover{background:#fbfaff}
+.subject{min-width:300px;font-weight:650}.product{min-width:210px}.contractor{min-width:210px}
+.amount{white-space:nowrap;font-weight:700}.ref{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+mark{background:#fff0a8;padding:0 1px;border-radius:2px}
+.empty{padding:46px;text-align:center;color:var(--muted)}
+.load{padding:14px;text-align:center;border-top:1px solid var(--line)}.load button{width:auto;padding:0 18px}
+.hidden{display:none!important}
+.pill{display:inline-block;border-radius:999px;padding:3px 7px;background:var(--soft);color:var(--accent);font-size:10px;font-weight:700;white-space:nowrap}
+.pill.open{background:#e6f5ee;color:var(--green)}.pill.limited{background:#fff2da;color:var(--amber)}.pill.other{background:#eef0f2;color:#687480}
+.pill.closed{background:#eef0f2;color:#687480}
+.dashboard{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;margin-top:14px}
+.dash-card{padding:16px}.dash-card h3{margin:0 0 12px;font-size:14px}.dash-note{font-size:11px;color:var(--muted);line-height:1.45;margin-top:8px}
+.metric-list{display:grid;gap:8px}.metric-row{display:grid;grid-template-columns:minmax(130px,1fr) 3fr 58px;gap:10px;align-items:center;font-size:12px}
+.bar-track{height:10px;background:#eef1f4;border-radius:999px;overflow:hidden}.bar-fill{height:100%;background:var(--accent2);border-radius:999px}
+.kv-table{width:100%;min-width:0}.kv-table th{position:static}.kv-table td,.kv-table th{font-size:12px;padding:8px}.kv-table td:last-child,.kv-table th:last-child{text-align:right}
+.expiry-controls{display:flex;gap:10px;align-items:end;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}.expiry-controls>div{min-width:180px}
+.section-title{margin:0 0 8px;font-size:15px}.section-sub{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.45}
+@media(max-width:1100px){.searchbox{grid-template-columns:1fr 1fr 1fr}.searchbox .wide{grid-column:1/-1}.dashboard{grid-template-columns:1fr}}
+@media(max-width:760px){.stats{grid-template-columns:1fr 1fr}.searchbox{grid-template-columns:1fr 1fr}.searchbox .wide{grid-column:1/-1}}
+</style>
+</head>
 <body>
 <header class="topbar"><h1>HA Tender Search</h1><p id="subtitle">Daily-updated HA tender database</p></header>
 <main class="wrap">
+
 <section class="panel">
-<div class="tabs"><button class="tab active" data-tab="awards">Historical Awards</button><button class="tab" data-tab="notices">Tender Notices</button></div>
-<div class="searchbox">
-<div class="wide"><label>Keyword / ingredient / product / brand / tender reference / contractor</label><input id="q" placeholder="e.g. abemaciclib, nintedanib, injection, DCH Auriga" autofocus></div>
-<div id="clusterWrap"><label>Hospital / Cluster</label><select id="cluster"><option value="">All</option></select></div>
-<div id="contractorWrap"><label>Contractor</label><select id="contractor"><option value="">All</option></select></div>
-<div><label>Year</label><select id="year"><option value="">All</option></select></div>
-<div><button id="reset" class="secondary">Reset</button></div>
-</div>
-<div class="help">Multiple words use AND logic. Data is refreshed by GitHub Actions; this page only searches the generated JSON database.</div>
+  <div class="tabs">
+    <button class="tab active" data-tab="awards">Historical Awards</button>
+    <button class="tab" data-tab="analysis">Analysis Dashboard</button>
+    <button class="tab" data-tab="expiry">Expiry Dashboard</button>
+    <button class="tab" data-tab="notices">Tender Notices</button>
+  </div>
+  <div class="searchbox">
+    <div class="wide"><label>Keyword / ingredient / product / brand / tender reference / contractor</label><input id="q" placeholder="e.g. abemaciclib, nintedanib, injection, DCH Auriga" autofocus></div>
+    <div id="clusterWrap"><label>Hospital / Cluster</label><select id="cluster"><option value="">All</option></select></div>
+    <div id="contractorWrap"><label>Contractor</label><select id="contractor"><option value="">All</option></select></div>
+    <div id="procedureWrap"><label>Tender Type (HA)</label><select id="procedure"><option value="">All</option></select></div>
+    <div><label>Year</label><select id="year"><option value="">All</option></select></div>
+    <div><button id="reset" class="secondary">Reset</button></div>
+  </div>
+  <div class="help" id="helpText">
+    Multiple words use AND logic. <b>Open / Limited</b> is taken directly from HA's <b>Tendering Procedure</b> field; no tender type is inferred.
+  </div>
 </section>
-<section class="stats">
-<div class="stat"><span id="l1">Matched award lines</span><b id="s1">0</b></div>
-<div class="stat"><span id="l2">Unique tender references</span><b id="s2">0</b></div>
-<div class="stat"><span id="l3">Unique contractors</span><b id="s3">0</b></div>
-<div class="stat"><span id="l4">Latest award</span><b id="s4">—</b></div>
-<div class="stat"><span>Last checked</span><b id="s5" style="font-size:14px">—</b></div>
+
+<section class="stats" id="statsBar">
+  <div class="stat"><span id="l1">Matched award lines</span><b id="s1">0</b></div>
+  <div class="stat"><span id="l2">Unique tender references</span><b id="s2">0</b></div>
+  <div class="stat"><span id="l3">Unique contractors</span><b id="s3">0</b></div>
+  <div class="stat"><span id="l4">Latest award</span><b id="s4">—</b></div>
+  <div class="stat"><span>Last checked</span><b id="s5" style="font-size:14px">—</b></div>
 </section>
-<section class="panel results">
-<div class="results-head"><strong id="resultTitle">Tender history</strong><div class="small">Newest first · 100 rows at a time</div></div>
-<div class="table-wrap">
-<table id="awardTable"><thead><tr><th>Award date</th><th>Tender ref.</th><th>Product / tender object</th><th>Subject</th><th>Contractor</th><th>Item</th><th>Contract period</th><th>Amount</th><th>Hospital / Cluster</th></tr></thead><tbody></tbody></table>
-<table id="noticeTable" class="hidden"><thead><tr><th>Status</th><th>Closing date</th><th>Issue date</th><th>Tender ref.</th><th>Subject</th><th>Submission requirement</th><th>Tender enquiry</th></tr></thead><tbody></tbody></table>
-<div id="empty" class="empty hidden">No matching records.</div>
-</div>
-<div class="load hidden" id="loadArea"><button id="loadMore">Show more</button></div>
-</section></main>
+
+<section class="panel results" id="awardsView">
+  <div class="results-head"><strong>Tender history</strong><div class="small">Newest first · unique award-line master · 100 rows at a time</div></div>
+  <div class="table-wrap">
+    <table id="awardTable">
+      <thead><tr>
+        <th>Award date</th><th>Tender ref.</th><th>Product / tender object</th><th>Subject</th>
+        <th>Contractor</th><th>Open / Limited (HA)</th><th>Item</th><th>Contract end</th><th>Contract period</th><th>Amount</th><th>Hospital / Cluster</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="awardEmpty" class="empty hidden">No matching award records.</div>
+  </div>
+  <div class="load hidden" id="loadArea"><button id="loadMore">Show more</button></div>
+</section>
+
+<section id="analysisView" class="hidden">
+  <div class="dashboard">
+    <section class="panel dash-card">
+      <h3>Tendering Procedure — HA source field</h3>
+      <div id="procedureBars" class="metric-list"></div>
+      <div class="dash-note">Grouped only by HA text beginning with “Open” or “Limited”. Other/blank values remain separate.</div>
+    </section>
+    <section class="panel dash-card">
+      <h3>Top Contractors — unique award lines</h3>
+      <table class="kv-table"><thead><tr><th>Contractor</th><th>Lines</th></tr></thead><tbody id="contractorSummary"></tbody></table>
+      <div class="dash-note">This ranks unique award lines, not revenue or tender value.</div>
+    </section>
+    <section class="panel dash-card">
+      <h3>Award Activity by Month</h3>
+      <div id="awardMonthBars" class="metric-list"></div>
+      <div class="dash-note">Uses explicit Award Date only. Showing the most recent 18 months in the current filtered set.</div>
+    </section>
+    <section class="panel dash-card">
+      <h3>Data Coverage</h3>
+      <table class="kv-table"><tbody id="coverageSummary"></tbody></table>
+      <div class="dash-note">Useful for checking whether an analysis is based on complete structured dates versus unparsed source text.</div>
+    </section>
+  </div>
+</section>
+
+<section id="expiryView" class="hidden">
+  <section class="panel">
+    <div class="expiry-controls">
+      <div>
+        <label>Upcoming expiry table horizon</label>
+        <select id="expiryHorizon">
+          <option value="90">Next 90 days</option>
+          <option value="180">Next 180 days</option>
+          <option value="365" selected>Next 365 days</option>
+          <option value="730">Next 730 days</option>
+        </select>
+      </div>
+      <div class="small">Only rows with a valid <b>Contract End</b> in YYYY-MM-DD are included in expiry calculations. Missing/unparsed dates are never guessed.</div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><span>Valid contract end dates</span><b id="eValid">0</b></div>
+    <div class="stat"><span>Expiring ≤90 days</span><b id="e90">0</b></div>
+    <div class="stat"><span>Expiring 91–180 days</span><b id="e180">0</b></div>
+    <div class="stat"><span>Expiring 181–365 days</span><b id="e365">0</b></div>
+    <div class="stat"><span>No parsed contract end</span><b id="eMissing">0</b></div>
+  </section>
+
+  <div class="dashboard">
+    <section class="panel dash-card">
+      <h3>Upcoming Expiries by Month</h3>
+      <div id="expiryMonthBars" class="metric-list"></div>
+      <div class="dash-note">Counts unique award lines with explicit Contract End dates. Months with zero expiries are shown as zero.</div>
+    </section>
+    <section class="panel dash-card">
+      <h3>Expiry Opportunity Coverage</h3>
+      <table class="kv-table"><tbody id="expiryCoverage"></tbody></table>
+      <div class="dash-note">Unique tender references are shown separately from award lines because one tender can legitimately contain multiple contractor/item lines.</div>
+    </section>
+  </div>
+
+  <section class="panel results" style="margin-top:14px">
+    <div class="results-head"><strong id="expiryTitle">Upcoming expiry records</strong><div class="small">Sorted by Contract End ↑</div></div>
+    <div class="table-wrap">
+      <table id="expiryTable">
+        <thead><tr>
+          <th>Contract end</th><th>Days left</th><th>Tender ref.</th><th>Product / tender object</th><th>Contractor</th>
+          <th>Open / Limited (HA)</th><th>Item</th><th>Award date</th><th>Hospital / Cluster</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="expiryEmpty" class="empty hidden">No upcoming expiries in this horizon.</div>
+    </div>
+  </section>
+</section>
+
+<section class="panel results hidden" id="noticesView">
+  <div class="results-head"><strong>Tender notices / opportunities</strong><div class="small">Newest closing date first</div></div>
+  <div class="table-wrap">
+    <table id="noticeTable">
+      <thead><tr><th>Status</th><th>Closing date</th><th>Issue date</th><th>Tender ref.</th><th>Subject</th><th>Submission requirement</th><th>Tender enquiry</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="noticeEmpty" class="empty hidden">No matching tender notices.</div>
+  </div>
+</section>
+
+</main>
 <script>
 let AWARDS=[],NOTICES=[],META={},active="awards",filtered=[],shown=0;
-const PAGE=100,el=id=>document.getElementById(id),q=el("q"),cluster=el("cluster"),contractor=el("contractor"),year=el("year");
+const PAGE=100,el=id=>document.getElementById(id);
+const q=el("q"),cluster=el("cluster"),contractor=el("contractor"),procedure=el("procedure"),year=el("year");
+
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 function short(s,n=160){s=String(s||"").replace(/\s+/g," ").trim();return s.length>n?s.slice(0,n-1)+"…":s}
 function hi(s,terms){let out=esc(s);for(const t of terms){if(!t)continue;const safe=t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");out=out.replace(new RegExp("("+safe+")","ig"),"<mark>$1</mark>")}return out}
 function uniq(a){return [...new Set(a.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
 function contractorShort(s){s=short(s,120);const m=s.match(/^(.{1,105}?(?:Limited|Ltd\.?|Co\.,?\s*Ltd\.?|Inc\.?|Corporation))/i);return m?m[1]:s}
 function setOptions(sel,vals){sel.innerHTML='<option value="">All</option>';for(const v of vals){const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)}}
+function isIsoDate(s){return /^\d{4}-\d{2}-\d{2}$/.test(String(s||""))}
+function parseIsoLocal(s){if(!isIsoDate(s))return null;const [y,m,d]=s.split("-").map(Number);const x=new Date(y,m-1,d);return Number.isNaN(x.getTime())?null:x}
+function todayLocal(){const n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate())}
+function daysBetween(a,b){return Math.round((b-a)/86400000)}
+function procedureGroup(v){const s=String(v||"").trim();if(/^open\b/i.test(s))return "Open";if(/^limited\b/i.test(s))return "Limited";return s?"Other":"Blank"}
+function procedurePill(v){
+ const g=procedureGroup(v),cls=g==="Open"?"open":g==="Limited"?"limited":"other";
+ return '<span class="pill '+cls+'" title="'+esc(v||"")+'">'+esc(v||"—")+'</span>'
+}
+function awardSubset(){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),y=year.value,c=cluster.value,ctr=contractor.value,p=procedure.value;
+ return AWARDS.filter(d=>{
+   const blob=Object.values(d).join(" ").toLowerCase();
+   if(!terms.every(t=>blob.includes(t)))return false;
+   if(c&&d["Hospital / Cluster"]!==c)return false;
+   if(ctr&&contractorShort(d["Contractor"])!==ctr)return false;
+   if(p&&procedureGroup(d["Tendering Procedure"])!==p)return false;
+   if(y&&!(d["Award Date"]||"").startsWith(y))return false;
+   return true;
+ });
+}
+function noticeSubset(){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),y=year.value;
+ return NOTICES.filter(d=>{
+   const blob=Object.values(d).join(" ").toLowerCase();
+   if(!terms.every(t=>blob.includes(t)))return false;
+   const dy=(d["Issue Date"]||d["Closing Date"]||"").slice(0,4);
+   return !y||dy===y;
+ });
+}
 function setupFilters(){
- if(active==="awards"){setOptions(cluster,uniq(AWARDS.map(d=>d["Hospital / Cluster"])));setOptions(contractor,uniq(AWARDS.map(d=>contractorShort(d["Contractor"]))));setOptions(year,uniq(AWARDS.map(d=>(d["Award Date"]||"").slice(0,4))).reverse());el("clusterWrap").classList.remove("hidden");el("contractorWrap").classList.remove("hidden")}
- else{setOptions(year,uniq(NOTICES.map(d=>(d["Issue Date"]||d["Closing Date"]||"").slice(0,4))).reverse());el("clusterWrap").classList.add("hidden");el("contractorWrap").classList.add("hidden")}
+ if(active==="notices"){
+   setOptions(year,uniq(NOTICES.map(d=>(d["Issue Date"]||d["Closing Date"]||"").slice(0,4))).reverse());
+   el("clusterWrap").classList.add("hidden");el("contractorWrap").classList.add("hidden");el("procedureWrap").classList.add("hidden");
+ }else{
+   setOptions(cluster,uniq(AWARDS.map(d=>d["Hospital / Cluster"])));
+   setOptions(contractor,uniq(AWARDS.map(d=>contractorShort(d["Contractor"]))));
+   setOptions(procedure,["Open","Limited","Other","Blank"]);
+   setOptions(year,uniq(AWARDS.map(d=>(d["Award Date"]||"").slice(0,4))).reverse());
+   el("clusterWrap").classList.remove("hidden");el("contractorWrap").classList.remove("hidden");el("procedureWrap").classList.remove("hidden");
+ }
+}
+function statsAward(rows){
+ el("s1").textContent=rows.length.toLocaleString();
+ el("s2").textContent=new Set(rows.map(d=>d["Tender Reference"]).filter(Boolean)).size.toLocaleString();
+ el("s3").textContent=new Set(rows.map(d=>contractorShort(d["Contractor"])).filter(Boolean)).size.toLocaleString();
+ const latest=rows.map(d=>d["Award Date"]).filter(isIsoDate).sort().reverse()[0]||"—";
+ el("s4").textContent=latest;
+ el("l1").textContent="Matched award lines";el("l2").textContent="Unique tender references";el("l3").textContent="Unique contractors";el("l4").textContent="Latest award";
+}
+function statsNotice(rows){
+ el("s1").textContent=rows.length.toLocaleString();
+ el("s2").textContent=new Set(rows.map(d=>d["Tender Reference"]).filter(Boolean)).size.toLocaleString();
+ const open=rows.filter(d=>d.Status==="OPEN");
+ el("s3").textContent=open.length.toLocaleString();
+ el("s4").textContent=open.map(d=>d["Closing Date"]).filter(isIsoDate).sort()[0]||"—";
+ el("l1").textContent="Matched notices";el("l2").textContent="Unique tender references";el("l3").textContent="Open notices";el("l4").textContent="Nearest closing";
+}
+function drawAwards(rows){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),tb=document.querySelector("#awardTable tbody");tb.innerHTML="";
+ const sorted=rows.slice().sort((a,b)=>(b["Award Date"]||"").localeCompare(a["Award Date"]||""));
+ filtered=sorted;shown=Math.min(PAGE,filtered.length);
+ for(const d of filtered.slice(0,shown)){
+   const tr=document.createElement("tr");
+   tr.innerHTML='<td>'+esc(d["Award Date"]||"—")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="product">'+hi(short(d["Product / Tender Object"],190),terms)+'</td><td class="subject">'+hi(short(d["Subject"],225),terms)+'</td><td class="contractor">'+hi(contractorShort(d["Contractor"]),terms)+'</td><td>'+procedurePill(d["Tendering Procedure"])+'</td><td>'+hi(short(d["Item"],90),terms)+'</td><td>'+esc(d["Contract End"]||"—")+'</td><td>'+hi(short(d["Contract Period"],125),terms)+'</td><td class="amount">'+hi(d["Estimated Contract Amount Raw"]||"—",terms)+'</td><td>'+hi(d["Hospital / Cluster"],terms)+'</td>';
+   tb.appendChild(tr);
+ }
+ el("awardEmpty").classList.toggle("hidden",filtered.length>0);
+ el("loadArea").classList.toggle("hidden",shown>=filtered.length);
+ if(shown<filtered.length)el("loadMore").textContent="Show more ("+shown.toLocaleString()+" / "+filtered.length.toLocaleString()+")";
+}
+function appendMoreAwards(){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),tb=document.querySelector("#awardTable tbody"),start=shown;
+ shown=Math.min(shown+PAGE,filtered.length);
+ for(const d of filtered.slice(start,shown)){
+   const tr=document.createElement("tr");
+   tr.innerHTML='<td>'+esc(d["Award Date"]||"—")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="product">'+hi(short(d["Product / Tender Object"],190),terms)+'</td><td class="subject">'+hi(short(d["Subject"],225),terms)+'</td><td class="contractor">'+hi(contractorShort(d["Contractor"]),terms)+'</td><td>'+procedurePill(d["Tendering Procedure"])+'</td><td>'+hi(short(d["Item"],90),terms)+'</td><td>'+esc(d["Contract End"]||"—")+'</td><td>'+hi(short(d["Contract Period"],125),terms)+'</td><td class="amount">'+hi(d["Estimated Contract Amount Raw"]||"—",terms)+'</td><td>'+hi(d["Hospital / Cluster"],terms)+'</td>';
+   tb.appendChild(tr);
+ }
+ el("loadArea").classList.toggle("hidden",shown>=filtered.length);
+ if(shown<filtered.length)el("loadMore").textContent="Show more ("+shown.toLocaleString()+" / "+filtered.length.toLocaleString()+")";
+}
+function drawNotices(rows){
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),tb=document.querySelector("#noticeTable tbody");tb.innerHTML="";
+ rows=rows.slice().sort((a,b)=>(b["Closing Date"]||"").localeCompare(a["Closing Date"]||""));
+ for(const d of rows){
+   const tr=document.createElement("tr"),st=(d.Status||"UNKNOWN").toLowerCase();
+   tr.innerHTML='<td><span class="pill '+st+'">'+esc(d.Status||"UNKNOWN")+'</span></td><td>'+esc(d["Closing Date"]||"")+'</td><td>'+esc(d["Issue Date"]||"")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="subject">'+hi(short(d["Subject"],330),terms)+'</td><td>'+hi(short(d["Submission Requirement"],210),terms)+'</td><td>'+hi(short(d["Tender Enquiry"],180),terms)+'</td>';
+   tb.appendChild(tr);
+ }
+ el("noticeEmpty").classList.toggle("hidden",rows.length>0);
+}
+function renderBarList(containerId, entries, maxItems){
+ const box=el(containerId);box.innerHTML="";
+ const list=entries.slice(0,maxItems||entries.length),max=Math.max(1,...list.map(x=>x[1]));
+ for(const [label,count] of list){
+   const row=document.createElement("div");row.className="metric-row";
+   row.innerHTML='<div title="'+esc(label)+'">'+esc(short(label,36))+'</div><div class="bar-track"><div class="bar-fill" style="width:'+((count/max)*100).toFixed(1)+'%"></div></div><div style="text-align:right;font-weight:700">'+count.toLocaleString()+'</div>';
+   box.appendChild(row);
+ }
+ if(!list.length)box.innerHTML='<div class="small">No data in current filter.</div>';
+}
+function renderAnalysis(rows){
+ const proc={Open:0,Limited:0,Other:0,Blank:0};
+ rows.forEach(d=>proc[procedureGroup(d["Tendering Procedure"])]++);
+ renderBarList("procedureBars",Object.entries(proc),10);
+
+ const contractors={};
+ rows.forEach(d=>{const c=contractorShort(d["Contractor"])||"Unknown";contractors[c]=(contractors[c]||0)+1});
+ const top=Object.entries(contractors).sort((a,b)=>b[1]-a[1]).slice(0,12);
+ el("contractorSummary").innerHTML=top.map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+v.toLocaleString()+'</td></tr>').join("")||'<tr><td colspan="2">No data</td></tr>';
+
+ const months={};
+ rows.forEach(d=>{const a=d["Award Date"]||"";if(isIsoDate(a)){const m=a.slice(0,7);months[m]=(months[m]||0)+1}});
+ const monthEntries=Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-18);
+ renderBarList("awardMonthBars",monthEntries,18);
+
+ const validAward=rows.filter(d=>isIsoDate(d["Award Date"])).length;
+ const validEnd=rows.filter(d=>isIsoDate(d["Contract End"])).length;
+ const rawProc=rows.filter(d=>String(d["Tendering Procedure"]||"").trim()).length;
+ const uniqueRefs=new Set(rows.map(d=>d["Tender Reference"]).filter(Boolean)).size;
+ el("coverageSummary").innerHTML=
+   '<tr><td>Unique award lines</td><td>'+rows.length.toLocaleString()+'</td></tr>'+
+   '<tr><td>Unique tender references</td><td>'+uniqueRefs.toLocaleString()+'</td></tr>'+
+   '<tr><td>Valid Award Date</td><td>'+validAward.toLocaleString()+' / '+rows.length.toLocaleString()+'</td></tr>'+
+   '<tr><td>Valid Contract End</td><td>'+validEnd.toLocaleString()+' / '+rows.length.toLocaleString()+'</td></tr>'+
+   '<tr><td>HA Tendering Procedure populated</td><td>'+rawProc.toLocaleString()+' / '+rows.length.toLocaleString()+'</td></tr>';
+}
+function renderExpiry(rows){
+ const today=todayLocal(),valid=[],missing=[];
+ for(const d of rows){
+   const end=parseIsoLocal(d["Contract End"]);
+   if(end)valid.push({d,end,days:daysBetween(today,end)});else missing.push(d);
+ }
+ const future=valid.filter(x=>x.days>=0);
+ const e90=future.filter(x=>x.days<=90);
+ const e180=future.filter(x=>x.days>=91&&x.days<=180);
+ const e365=future.filter(x=>x.days>=181&&x.days<=365);
+ el("eValid").textContent=valid.length.toLocaleString();
+ el("e90").textContent=e90.length.toLocaleString();
+ el("e180").textContent=e180.length.toLocaleString();
+ el("e365").textContent=e365.length.toLocaleString();
+ el("eMissing").textContent=missing.length.toLocaleString();
+
+ const monthCounts={};
+ for(let i=0;i<12;i++){
+   const x=new Date(today.getFullYear(),today.getMonth()+i,1);
+   const key=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0");
+   monthCounts[key]=0;
+ }
+ future.forEach(x=>{const key=x.d["Contract End"].slice(0,7);if(Object.prototype.hasOwnProperty.call(monthCounts,key))monthCounts[key]++});
+ renderBarList("expiryMonthBars",Object.entries(monthCounts),12);
+
+ const within365=future.filter(x=>x.days<=365);
+ el("expiryCoverage").innerHTML=
+   '<tr><td>Future expiry award lines ≤365d</td><td>'+within365.length.toLocaleString()+'</td></tr>'+
+   '<tr><td>Future expiry unique tender refs ≤365d</td><td>'+new Set(within365.map(x=>x.d["Tender Reference"]).filter(Boolean)).size.toLocaleString()+'</td></tr>'+
+   '<tr><td>Future expiry contractors ≤365d</td><td>'+new Set(within365.map(x=>contractorShort(x.d["Contractor"])).filter(Boolean)).size.toLocaleString()+'</td></tr>'+
+   '<tr><td>Expired records in master</td><td>'+valid.filter(x=>x.days<0).length.toLocaleString()+'</td></tr>'+
+   '<tr><td>Missing / unparsed Contract End</td><td>'+missing.length.toLocaleString()+'</td></tr>';
+
+ const horizon=Number(el("expiryHorizon").value||365);
+ const upcoming=future.filter(x=>x.days<=horizon).sort((a,b)=>a.days-b.days);
+ el("expiryTitle").textContent="Upcoming expiry records — next "+horizon+" days";
+ const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),tb=document.querySelector("#expiryTable tbody");tb.innerHTML="";
+ for(const x of upcoming){
+   const d=x.d,tr=document.createElement("tr");
+   tr.innerHTML='<td><b>'+esc(d["Contract End"])+'</b></td><td>'+x.days.toLocaleString()+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="product">'+hi(short(d["Product / Tender Object"],210),terms)+'</td><td class="contractor">'+hi(contractorShort(d["Contractor"]),terms)+'</td><td>'+procedurePill(d["Tendering Procedure"])+'</td><td>'+hi(short(d["Item"],90),terms)+'</td><td>'+esc(d["Award Date"]||"—")+'</td><td>'+hi(d["Hospital / Cluster"],terms)+'</td>';
+   tb.appendChild(tr);
+ }
+ el("expiryEmpty").classList.toggle("hidden",upcoming.length>0);
 }
 function render(){
- const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),y=year.value,c=cluster.value,ctr=contractor.value,src=active==="awards"?AWARDS:NOTICES;
- filtered=src.filter(d=>{const blob=Object.values(d).join(" ").toLowerCase();if(!terms.every(t=>blob.includes(t)))return false;if(active==="awards"&&c&&d["Hospital / Cluster"]!==c)return false;if(active==="awards"&&ctr&&contractorShort(d["Contractor"])!==ctr)return false;const dy=(active==="awards"?(d["Award Date"]||""):(d["Issue Date"]||d["Closing Date"]||"")).slice(0,4);return !y||dy===y}).sort((a,b)=>active==="awards"?(b["Award Date"]||"").localeCompare(a["Award Date"]||""):(b["Closing Date"]||"").localeCompare(a["Closing Date"]||""));
- shown=Math.min(PAGE,filtered.length);stats();draw();
+ el("s5").textContent=META.last_checked?META.last_checked.replace("T"," ").slice(0,16):"Not run yet";
+ if(active==="notices"){
+   const rows=noticeSubset();statsNotice(rows);drawNotices(rows);
+ }else{
+   const rows=awardSubset();statsAward(rows);
+   if(active==="awards")drawAwards(rows);
+   if(active==="analysis")renderAnalysis(rows);
+   if(active==="expiry")renderExpiry(rows);
+ }
 }
-function stats(){
- el("s1").textContent=filtered.length.toLocaleString();el("s2").textContent=new Set(filtered.map(d=>d["Tender Reference"]).filter(Boolean)).size.toLocaleString();el("s5").textContent=META.last_checked?META.last_checked.replace("T"," ").slice(0,16):"Not run yet";
- if(active==="awards"){el("l1").textContent="Matched award lines";el("l2").textContent="Unique tender references";el("l3").textContent="Unique contractors";el("l4").textContent="Latest award";el("s3").textContent=new Set(filtered.map(d=>contractorShort(d["Contractor"])).filter(Boolean)).size.toLocaleString();el("s4").textContent=filtered[0]?.["Award Date"]||"—"}
- else{el("l1").textContent="Matched notices";el("l2").textContent="Unique tender references";el("l3").textContent="Open notices";el("l4").textContent="Nearest closing";const open=filtered.filter(d=>d.Status==="OPEN");el("s3").textContent=open.length.toLocaleString();el("s4").textContent=open.slice().sort((a,b)=>(a["Closing Date"]||"").localeCompare(b["Closing Date"]||""))[0]?.["Closing Date"]||"—"}
+function showTab(tab){
+ active=tab;
+ document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.tab===tab));
+ el("awardsView").classList.toggle("hidden",tab!=="awards");
+ el("analysisView").classList.toggle("hidden",tab!=="analysis");
+ el("expiryView").classList.toggle("hidden",tab!=="expiry");
+ el("noticesView").classList.toggle("hidden",tab!=="notices");
+ if(tab==="notices"){
+   el("helpText").innerHTML='Tender Notices use HA notice fields. “OPEN / CLOSED” here refers to the notice closing date, not the award Tendering Procedure.';
+ }else if(tab==="expiry"){
+   el("helpText").innerHTML='Expiry calculations use only explicit <b>Contract End</b> dates. Missing or unparsed dates are excluded rather than estimated.';
+ }else{
+   el("helpText").innerHTML="Multiple words use AND logic. <b>Open / Limited</b> is taken directly from HA\'s <b>Tendering Procedure</b> field; no tender type is inferred.";
+ }
+ q.value="";cluster.value="";contractor.value="";procedure.value="";year.value="";
+ setupFilters();render();
 }
-function draw(){
- const terms=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean),ab=document.querySelector("#awardTable tbody"),nb=document.querySelector("#noticeTable tbody");ab.innerHTML="";nb.innerHTML="";
- if(active==="awards"){for(const d of filtered.slice(0,shown)){const tr=document.createElement("tr");tr.innerHTML='<td>'+esc(d["Award Date"]||"—")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="product">'+hi(short(d["Product / Tender Object"],190),terms)+'</td><td class="subject">'+hi(short(d["Subject"],230),terms)+'</td><td class="contractor">'+hi(contractorShort(d["Contractor"]),terms)+'</td><td>'+hi(short(d["Item"],90),terms)+'</td><td>'+hi(short(d["Contract Period"],135),terms)+'</td><td class="amount">'+hi(d["Estimated Contract Amount Raw"]||"—",terms)+'</td><td>'+hi(d["Hospital / Cluster"],terms)+'</td>';ab.appendChild(tr)}}
- else{for(const d of filtered.slice(0,shown)){const tr=document.createElement("tr"),st=(d.Status||"UNKNOWN").toLowerCase();tr.innerHTML='<td><span class="pill '+st+'">'+esc(d.Status||"UNKNOWN")+'</span></td><td>'+esc(d["Closing Date"]||"")+'</td><td>'+esc(d["Issue Date"]||"")+'</td><td class="ref">'+hi(d["Tender Reference"],terms)+'</td><td class="subject">'+hi(short(d["Subject"],330),terms)+'</td><td>'+hi(short(d["Submission Requirement"],210),terms)+'</td><td>'+hi(short(d["Tender Enquiry"],180),terms)+'</td>';nb.appendChild(tr)}}
- el("empty").classList.toggle("hidden",filtered.length>0);el("loadArea").classList.toggle("hidden",shown>=filtered.length);if(shown<filtered.length)el("loadMore").textContent="Show more ("+shown.toLocaleString()+" / "+filtered.length.toLocaleString()+")";
+async function init(){
+ try{
+   const [a,n,m]=await Promise.all([
+     fetch("data/awards.json",{cache:"no-store"}),
+     fetch("data/notices.json",{cache:"no-store"}),
+     fetch("data/meta.json",{cache:"no-store"})
+   ]);
+   AWARDS=await a.json();NOTICES=await n.json();META=await m.json();
+   el("subtitle").textContent="Daily-updated HA tender database · "+AWARDS.length.toLocaleString()+" unique award lines";
+   setupFilters();render();
+ }catch(e){
+   el("subtitle").textContent="Could not load data files: "+e.message;
+ }
 }
-async function init(){try{const [a,n,m]=await Promise.all([fetch("data/awards.json",{cache:"no-store"}),fetch("data/notices.json",{cache:"no-store"}),fetch("data/meta.json",{cache:"no-store"})]);AWARDS=await a.json();NOTICES=await n.json();META=await m.json();el("subtitle").textContent="Daily-updated HA tender database · "+AWARDS.length.toLocaleString()+" unique award lines";setupFilters();render()}catch(e){el("subtitle").textContent="Could not load data files: "+e.message}}
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");active=b.dataset.tab;q.value="";cluster.value="";contractor.value="";year.value="";el("awardTable").classList.toggle("hidden",active!=="awards");el("noticeTable").classList.toggle("hidden",active!=="notices");el("resultTitle").textContent=active==="awards"?"Tender history":"Tender notices / opportunities";setupFilters();render()}));
-let timer;q.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(render,70)});[cluster,contractor,year].forEach(x=>x.addEventListener("change",render));el("reset").addEventListener("click",()=>{q.value="";cluster.value="";contractor.value="";year.value="";render();q.focus()});el("loadMore").addEventListener("click",()=>{shown=Math.min(shown+PAGE,filtered.length);draw()});init();
-</script></body></html>
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+let timer;
+q.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(render,70)});
+[cluster,contractor,procedure,year,el("expiryHorizon")].forEach(x=>x.addEventListener("change",render));
+el("reset").addEventListener("click",()=>{q.value="";cluster.value="";contractor.value="";procedure.value="";year.value="";render();q.focus()});
+el("loadMore").addEventListener("click",appendMoreAwards);
+init();
+</script>
+</body>
+</html>
