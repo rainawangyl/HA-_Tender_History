@@ -253,71 +253,142 @@ def parse_awards(html,source_url):
 def parse_notice_page(html,url):
     soup=BeautifulSoup(html,"lxml")
     visible=" ".join(soup.stripped_strings)
-    if "Tender Reference" not in visible or "Closing Date" not in visible:return None
-    fields={"Tender Reference":"","Subject":"","Issue Date":"","Closing Date Raw":"","Submission Requirement":"","Tender Enquiry":""}
-    label_map={"TENDER REFERENCE":"Tender Reference","SUBJECT MATTER":"Subject","ISSUE DATE":"Issue Date",
-               "CLOSING DATE AND TIME":"Closing Date Raw","CLOSING DATE":"Closing Date Raw",
-               "SUBMISSION REQUIREMENT":"Submission Requirement","TENDER ENQUIRY":"Tender Enquiry"}
+
+    has_ref=("Tender Reference" in visible) or ("EOI Reference" in visible)
+    if not has_ref or "Closing Date" not in visible:
+        return None
+
+    fields={
+        "Tender Reference":"",
+        "Notice Type":"",
+        "Subject":"",
+        "Issue Date":"",
+        "Closing Date Raw":"",
+        "Submission Requirement":"",
+        "Tender Enquiry":""
+    }
+
+    label_map={
+        "TENDER REFERENCE":"Tender Reference",
+        "EOI REFERENCE":"Tender Reference",
+        "SUBJECT MATTER":"Subject",
+        "ISSUE DATE":"Issue Date",
+        "CLOSING DATE AND TIME":"Closing Date Raw",
+        "CLOSING DATE":"Closing Date Raw",
+        "SUBMISSION REQUIREMENT":"Submission Requirement",
+        "TENDER ENQUIRY":"Tender Enquiry",
+        "EOI ENQUIRY":"Tender Enquiry",
+    }
+
     for tr in soup.find_all("tr"):
         cells=[clean(x.get_text(" ",strip=True)) for x in tr.find_all(["th","td"])]
         cells=[x for x in cells if x and x!=":"]
         if len(cells)>=2:
             lab=keytext(cells[0].rstrip(":"))
-            if lab in label_map:fields[label_map[lab]]=clean(" ".join(cells[1:]))
+            if lab in label_map:
+                fields[label_map[lab]]=clean(" ".join(cells[1:]))
+                if lab=="EOI REFERENCE":
+                    fields["Notice Type"]="EOI"
+                elif lab=="TENDER REFERENCE":
+                    fields["Notice Type"]="TENDER"
+
     patterns={
-      "Tender Reference":r"Tender Reference\s*:?\s*(.+?)(?=Subject Matter|Issue Date|Closing Date)",
+      "Tender Reference":r"(?:Tender|EOI) Reference\s*:?\s*(.+?)(?=Subject Matter|Issue Date|Closing Date)",
       "Subject":r"Subject Matter\s*:?\s*(.+?)(?=Issue Date|Closing Date)",
       "Issue Date":r"Issue Date\s*:?\s*(.+?)(?=Closing Date)",
-      "Closing Date Raw":r"Closing Date(?: and Time)?\s*:?\s*(.+?)(?=Submission Requirement|Tender Enquiry|Tender Documents|Links for)"
+      "Closing Date Raw":r"Closing Date(?: and Time)?\s*:?\s*(.+?)(?=Submission Requirement|Submission Location|Tender Enquiry|EOI Enquiry|Tender Documents|Links for)"
     }
+
     for f,p in patterns.items():
         if not fields[f]:
-            m=re.search(p,visible,re.I)
-            if m:fields[f]=clean(m.group(1))
-    if not fields["Tender Reference"] or not fields["Subject"]:return None
+            mm=re.search(p,visible,re.I)
+            if mm:
+                fields[f]=clean(mm.group(1))
+
+    if not fields["Tender Reference"] or not fields["Subject"]:
+        return None
+
+    if not fields["Notice Type"]:
+        fields["Notice Type"]="EOI" if re.search(r"\bEOI Reference\b",visible,re.I) else "TENDER"
+
     fields["Issue Date"]=parse_date(fields["Issue Date"])
     fields["Closing Date"]=parse_date(fields["Closing Date Raw"])
     fields["Source URL"]=url
     fields["Unique Key"]=notice_key(fields)
     return fields
 
-def notice_crawl_candidate(url):
-    """Keep the notice crawl narrowly inside HA procurement/index HTML pages."""
+def extract_all_candidate_urls(base,html):
+    soup=BeautifulSoup(html,"lxml")
+    out=set()
+
+    for tag in soup.find_all(True):
+        for attr in ("href","src","action","data"):
+            v=tag.get(attr)
+            if v:
+                out.add(urljoin(base,v))
+
+    for meta in soup.find_all("meta"):
+        content=meta.get("content","")
+        mm=re.search(r"url\s*=\s*['\"]?([^'\";]+)",content,re.I)
+        if mm:
+            out.add(urljoin(base,mm.group(1).strip()))
+
+    patterns=[
+        r"[\"']([^\"']+\.html?(?:\?[^\"']*)?)[\"']",
+        r"[\"']([^\"']+\.asp(?:\?[^\"']*)?)[\"']",
+        r"(?i)(/?haho/ho/bssd/[A-Za-z0-9_().%+\-/]+\.html?(?:\?[^\s\"'<>]*)?)",
+    ]
+    for pat in patterns:
+        for v in re.findall(pat,html,re.I):
+            out.add(urljoin(base,v.strip()))
+
+    return [u for u in out if urlparse(u).netloc.lower().endswith("ha.org.hk")]
+
+
+def notice_crawl_candidate(url,root_wrapper):
     p=urlparse(url)
     if not p.netloc.lower().endswith("ha.org.hk"):
         return False
 
+    low=url.lower()
     path=p.path.lower()
-    # Skip documents/assets; the frontend needs notice metadata, not tender documents.
-    if re.search(r"\.(?:pdf|docx?|xlsx?|xls|zip|jpg|jpeg|png|gif|css|js)(?:$|\?)",url,re.I):
+
+    if re.search(r"\.(?:pdf|docx?|xlsx?|xls|zip|jpg|jpeg|png|gif|css|js)(?:$|\?)",low):
         return False
 
-    # Procurement static pages and HA content wrappers/indexes are the useful paths.
-    if "/haho/ho/bssd/" in path:
+    if "/haho/ho/bssd/" in path and re.search(r"\.html?$",path,re.I):
         return True
-    if "/visitor/ha_view_content.asp" in path:
-        return True
+
+    if path.startswith("/visitor/") and path.endswith(".asp"):
+        if "257201" in low:
+            return True
+
+        rootp=urlparse(root_wrapper)
+        if path==rootp.path.lower():
+            return True
+
+        if any(x in path for x in (
+            "ha_view_content.asp",
+            "ha_browse_act.asp",
+            "ha_visitor_index.asp",
+            "ha_visitor_text_index.asp",
+        )):
+            qs=p.query.lower()
+            if any(k in qs for k in ("page","pageno","page_no","start","offset","parent_id","content_id")):
+                return True
 
     return False
 
 
 def collect_notices(session,wrapper):
-    """
-    Crawl the HA Tender Notices section through intermediate wrapper/index pages.
-
-    The HA site does not always link the individual /haho/ho/bssd/*.htm notices
-    directly from the first wrapper page. A shallow BFS is therefore used:
-      Tender Notices wrapper
-        -> intermediate HA content/index page(s)
-        -> individual tender notice detail pages
-
-    A page is stored only if parse_notice_page() finds the required notice fields.
-    """
     records=[]
     visited=set()
+    queued={wrapper}
     queue=[(wrapper,0)]
-    max_depth=3
-    max_pages=350
+    max_depth=5
+    max_pages=800
+    detail_candidates=set()
+    visitor_pages=set()
 
     while queue and len(visited)<max_pages:
         url,depth=queue.pop(0)
@@ -334,29 +405,40 @@ def collect_notices(session,wrapper):
         rec=parse_notice_page(rr.text,url)
         if rec:
             records.append(rec)
-            # Detail pages mainly link to tender documents; no need to fan out further.
+            detail_candidates.add(url)
             continue
+
+        if "/visitor/" in url.lower():
+            visitor_pages.add(url)
 
         if depth>=max_depth:
             continue
 
-        links=candidate_links(url,rr.text)
-
-        # Also catch unquoted HA procurement HTML paths embedded in legacy JavaScript.
-        for v in re.findall(r"(?i)(/?haho/ho/bssd/[A-Za-z0-9_().%+\-/]+\.html?(?:\?[^\\s\"'<>]*)?)",rr.text):
-            links.append(urljoin(url,v.strip()))
+        links=extract_all_candidate_urls(url,rr.text)
 
         for nxt in sorted(set(links)):
-            if nxt not in visited and notice_crawl_candidate(nxt):
+            if nxt in visited or nxt in queued:
+                continue
+            if notice_crawl_candidate(nxt,wrapper):
+                queued.add(nxt)
                 queue.append((nxt,depth+1))
+                if "/haho/ho/bssd/" in nxt.lower():
+                    detail_candidates.add(nxt)
 
     unique={r["Unique Key"]:r for r in records}
 
     print("Tender Notice wrapper URL:",wrapper)
-    print("Tender Notice pages crawled:",len(visited))
-    print("Tender Notices parsed:",len(unique))
-
-    if not unique:
+    print("Tender Notice visitor/index pages crawled:",len(visitor_pages))
+    print("Tender Notice detail candidates discovered:",len(detail_candidates))
+    print("Tender Notice pages crawled total:",len(visited))
+    print("Tender Notices / EOIs parsed:",len(unique))
+    if unique:
+        types={}
+        for r in unique.values():
+            t=r.get("Notice Type","UNKNOWN")
+            types[t]=types.get(t,0)+1
+        print("Notice type counts:",types)
+    else:
         print("WARNING: No Tender Notices parsed. Existing notices.json will be preserved.")
 
     return list(unique.values())
@@ -384,17 +466,35 @@ def save_current_snapshot(incoming_awards):
 
 def validate_master_never_shrinks(before, after):
     """
-    Historical master must never lose unique lines just because HA's current webpage
-    stops displaying an older month. If this invariant is violated, abort before write.
+    Historical safety check.
+
+    Full V2 keys include amount and contract period, which HA may legitimately
+    correct later. Therefore we protect the stable base award identity instead:
+
+    Tender Reference + Award Date + Contractor + Item
+
+    Counts are compared per base identity so a genuine historical line loss is
+    still blocked, while legitimate amount / contract-period corrections are allowed.
     """
-    before_keys={award_key(r) for r in before}
-    after_keys={award_key(r) for r in after}
-    missing=before_keys-after_keys
-    if missing:
-        sample=sorted(missing)[:5]
+    from collections import Counter
+
+    before_counts = Counter(award_base_key(r) for r in before)
+    after_counts = Counter(award_base_key(r) for r in after)
+
+    losses = []
+    for base, before_n in before_counts.items():
+        after_n = after_counts.get(base, 0)
+        if after_n < before_n:
+            losses.append((base, before_n, after_n))
+
+    if losses:
+        sample = [
+            f"{base} ({before_n}->{after_n})"
+            for base, before_n, after_n in losses[:5]
+        ]
         raise RuntimeError(
-            f"Safety stop: historical master would lose {len(missing)} existing unique lines. "
-            f"Nothing was overwritten. Sample missing keys: {sample}"
+            f"Safety stop: historical master would lose {len(losses)} base award identities. "
+            f"Nothing was overwritten. Sample losses: {sample}"
         )
 
 def build_historical_base(seed_rows, existing_rows):
